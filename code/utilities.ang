@@ -1,0 +1,93 @@
+
+/************************************************************************
+*    FILE NAME:       utilities.ang
+*
+*    DESCRIPTION:     General purpose utility Angel scripts
+************************************************************************/
+
+/************************************************************************
+*    desc:  Color to the final color in time                                                             
+************************************************************************/
+void ColorTo( float time, CColor final, CSpriteScript2d & script )
+{
+    CColor current = script.GetColor();
+    CColor inc = (final - current) / time;
+
+    do
+    {
+        time -= GetElapsedTime();
+
+        current += inc * GetElapsedTime();
+        script.SetColor( current );
+
+        if( time < 0 )
+            script.SetColor( final );
+
+        Suspend();
+    }
+    while( time > 0 );
+
+}   // ColorTo
+
+
+/************************************************************************
+*    desc:  Fade to the final alpha                                                             
+************************************************************************/
+void FadeTo( float time, float final, CSpriteScript2d & script )
+{
+    // Convert from RGB value to normalized value
+    if( final > 1.5 )
+        final *= 0.00390625f;
+
+    float current = script.GetAlpha();
+    float inc = (final - current) / time;
+
+    do
+    {
+        time -= GetElapsedTime();
+
+        current += inc * GetElapsedTime();
+        script.SetAlpha( current );
+
+        if( time < 0 )
+            script.SetAlpha( final );
+
+        Suspend();
+    }
+    while( time > 0 );
+
+}   // FadeTo
+
+
+/************************************************************************
+*    desc:  Play the animation                                                             
+************************************************************************/
+void Play( float fps, CSpriteScript2d & script )
+{
+    float time = 1000.0 / fps;
+    uint frameCount = script.GetFrameCount();
+
+    for( uint i = 0; i < frameCount; ++i )
+    {
+        script.SetFrame( i );
+
+        Hold( time );
+    }
+
+}   // Play
+
+
+/************************************************************************
+*    desc:  Hold the script execution in time                                                            
+************************************************************************/
+void Hold( float time )
+{
+    do
+    {
+        time -= GetElapsedTime();
+
+        Suspend();
+    }
+    while( time > 0 );
+
+}   // Hold

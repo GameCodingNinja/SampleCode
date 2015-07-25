@@ -1,0 +1,197 @@
+<UIControl>
+
+  <group name="(menu)"/>
+
+  <spriteList>
+
+    <sprite objectName="key_binding_scroll_box_frame">
+      <script>
+        <transition in="Control_TransIn" out="Control_TransOut"/>
+        <state disabled="Control_Disabled" inactive="Control_Inactive" active="Control_Active" selected=""/>
+      </script>
+    </sprite>
+
+  </spriteList>
+
+  <!-- Scroll box mask -->
+  <stencilMask objectName="key_binding_scroll_box_mask"/>
+
+  <subControlList>
+    
+    <!-- These controls must always be listed in this order -->
+
+    <!-- Decrement Button -->
+    <control name="key_binding_up_arrow" controltype="button" defaultState="inactive">
+      <filePath file="data/objects/2d/menu/control/button_arrow.ctrl"/>
+      <position x="510" y="264" z="0"/>
+      <rotation z="-90"/>
+      <stateScript onActive="Control_OnActive" onSelect="Control_OnSelect"/>
+    </control>
+
+    <!-- Increment Button -->
+    <control name="key_binding_down_arrow" controltype="button" defaultState="inactive">
+      <filePath file="data/objects/2d/menu/control/button_arrow.ctrl"/>
+      <position x="510" y="-264" z="0"/>
+      <rotation z="90"/>
+      <stateScript onActive="Control_OnActive" onSelect="Control_OnSelect"/>
+    </control>
+
+    <!-- slider Control -->
+    <control name="key_binding_slider" controltype="slider" defaultState="inactive">
+      <filePath file="data/objects/2d/menu/control/key_binding_slider.ctrl"/>
+      <position x="510" y="0" z="0"/>
+      <settings orientation="VERT"/>
+      <stateScript onActive="Control_OnActive" onSelect="Control_OnSelect"/>
+      <scroll startDelay="750" scrollDelay="100" up="true" down="true"/>
+      <!-- size modifier for collision rect -->
+      <size width="80" height="0"/>
+    </control>
+
+  </subControlList>
+
+  <scrollBoxControlList>
+
+    <!-- initial offset -->
+    <position x="0" y="250" z="-5"/>
+    <controlInfo height="50" visibleInScrollBox="11"/>
+
+    <!-- Menu Seperator - Menu Navigation -->
+    <control controltype="button" defaultState="disabled">
+      <filePath file="data/objects/2d/menu/control/key_binding_seperator.ctrl"/>
+      <fontStringLst>
+        <string text="Menu Navigation"/>
+      </fontStringLst>
+    </control>
+
+    <!-- Menu Select Key Binding Button -->
+    <control name="menu_select" controltype="button" defaultState="inactive">
+      <filePath file="data/objects/2d/menu/control/key_binding_button.ctrl"/>
+      <fontStringLst>
+        <string text="Menu Select:"/>
+      </fontStringLst>
+      <action actionType="action"/>
+      <stateScript onActive="Control_OnActive" onSelect="button_capture_menu"/>
+    </control>
+
+    <!-- Menu Back Key Binding Button -->
+    <control name="menu_back" controltype="button" defaultState="inactive">
+      <filePath file="data/objects/2d/menu/control/key_binding_button.ctrl"/>
+      <fontStringLst>
+        <string text="Menu Back:"/>
+      </fontStringLst>
+      <action actionType="action"/>
+      <stateScript onActive="Control_OnActive" onSelect="button_capture_menu"/>
+    </control>
+
+    <!-- Menu Toggle Key Binding Button -->
+    <control name="menu_toggle" controltype="button" defaultState="inactive">
+      <filePath file="data/objects/2d/menu/control/key_binding_button.ctrl"/>
+      <fontStringLst>
+        <string text="Menu Toggle:"/>
+      </fontStringLst>
+      <action actionType="action"/>
+      <stateScript onActive="Control_OnActive" onSelect="button_capture_menu"/>
+    </control>
+
+    <!-- Menu Seperator - Misc -->
+    <control controltype="button" defaultState="disabled">
+      <filePath file="data/objects/2d/menu/control/key_binding_seperator.ctrl"/>
+      <fontStringLst>
+        <string text="Misc"/>
+      </fontStringLst>
+    </control>
+
+    <control name="menu_item1" controltype="button" defaultState="inactive">
+      <filePath file="data/objects/2d/menu/control/key_binding_button.ctrl"/>
+      <fontStringLst>
+        <string text="Menu Item 1:"/>
+      </fontStringLst>
+      <action actionType="action"/>
+      <stateScript onActive="Control_OnActive" onSelect="button_capture_menu"/>
+    </control>
+
+    <control name="menu_item2" controltype="button" defaultState="inactive">
+      <filePath file="data/objects/2d/menu/control/key_binding_button.ctrl"/>
+      <fontStringLst>
+        <string text="Menu Item 2:"/>
+      </fontStringLst>
+      <action actionType="action"/>
+      <stateScript onActive="Control_OnActive" onSelect="button_capture_menu"/>
+    </control>
+
+    <control name="menu_item3" controltype="button" defaultState="inactive">
+      <filePath file="data/objects/2d/menu/control/key_binding_button.ctrl"/>
+      <fontStringLst>
+        <string text="Menu Item 3:"/>
+      </fontStringLst>
+      <action actionType="action"/>
+      <stateScript onActive="Control_OnActive" onSelect="button_capture_menu"/>
+    </control>
+
+    <control name="menu_item4" controltype="button" defaultState="inactive">
+      <filePath file="data/objects/2d/menu/control/key_binding_button.ctrl"/>
+      <fontStringLst>
+        <string text="Menu Item 4:"/>
+      </fontStringLst>
+      <action actionType="action"/>
+      <stateScript onActive="Control_OnActive" onSelect="button_capture_menu"/>
+    </control>
+
+    <control name="menu_item5" controltype="button" defaultState="inactive">
+      <filePath file="data/objects/2d/menu/control/key_binding_button.ctrl"/>
+      <fontStringLst>
+        <string text="Menu Item 5:"/>
+      </fontStringLst>
+      <action actionType="action"/>
+      <stateScript onActive="Control_OnActive" onSelect="button_capture_menu"/>
+    </control>
+
+    <control name="menu_item6" controltype="button" defaultState="inactive">
+      <filePath file="data/objects/2d/menu/control/key_binding_button.ctrl"/>
+      <fontStringLst>
+        <string text="Menu Item 6:"/>
+      </fontStringLst>
+      <action actionType="action"/>
+      <stateScript onActive="Control_OnActive" onSelect="button_capture_menu"/>
+    </control>
+
+    <control name="menu_item7" controltype="button" defaultState="inactive">
+      <filePath file="data/objects/2d/menu/control/key_binding_button.ctrl"/>
+      <fontStringLst>
+        <string text="Menu Item 7:"/>
+      </fontStringLst>
+      <action actionType="action"/>
+      <stateScript onActive="Control_OnActive" onSelect="button_capture_menu"/>
+    </control>
+
+    <control name="menu_item8" controltype="button" defaultState="inactive">
+      <filePath file="data/objects/2d/menu/control/key_binding_button.ctrl"/>
+      <fontStringLst>
+        <string text="Menu Item 8:"/>
+      </fontStringLst>
+      <action actionType="action"/>
+      <stateScript onActive="Control_OnActive" onSelect="button_capture_menu"/>
+    </control>
+
+    <control name="menu_item9" controltype="button" defaultState="inactive">
+      <filePath file="data/objects/2d/menu/control/key_binding_button.ctrl"/>
+      <fontStringLst>
+        <string text="Menu Item 9:"/>
+      </fontStringLst>
+      <action actionType="action"/>
+      <stateScript onActive="Control_OnActive" onSelect="button_capture_menu"/>
+    </control>
+
+    <control name="menu_item10" controltype="button" defaultState="inactive">
+      <filePath file="data/objects/2d/menu/control/key_binding_button.ctrl"/>
+      <fontStringLst>
+        <string text="Menu Item 10:"/>
+      </fontStringLst>
+      <action actionType="action"/>
+      <stateScript onActive="Control_OnActive" onSelect="button_capture_menu"/>
+    </control>
+    
+
+  </scrollBoxControlList>
+
+</UIControl>
