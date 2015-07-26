@@ -18,7 +18,7 @@
 #include <common/uv.h>
 
 /************************************************************************
-*    desc:  Constructer
+*    desc:  Constructor
 ************************************************************************/
 CVertBufMgr::CVertBufMgr()
     : m_currentVBOID(0),
@@ -29,7 +29,7 @@ CVertBufMgr::CVertBufMgr()
 
 
 /************************************************************************
-*    desc:  destructer                                                             
+*    desc:  destructor                                                             
 ************************************************************************/
 CVertBufMgr::~CVertBufMgr()
 {
@@ -59,7 +59,7 @@ CVertBufMgr::~CVertBufMgr()
         }
     }
 
-}   // destructer
+}   // destructor
 
 
 /************************************************************************
@@ -149,10 +149,10 @@ GLuint CVertBufMgr::CreateDynamicFontIBO( const std::string & group, const std::
     if( mapMapIter == m_indexBuf2DMapMap.end() )
             mapMapIter = m_indexBuf2DMapMap.insert( std::make_pair(group, std::map<const std::string, GLuint>()) ).first;
 
-    // See if this intex buffer ID has already been loaded
+    // See if this buffer ID has already been loaded
     auto mapIter = mapMapIter->second.find( name );
 
-    // If it's not found, create the intex buffer and add it to the list
+    // If it's not found, create the buffer and add it to the list
     if( mapIter == mapMapIter->second.end() )
     {
         GLuint iboID = 0;
@@ -163,10 +163,10 @@ GLuint CVertBufMgr::CreateDynamicFontIBO( const std::string & group, const std::
         // unbind the buffer
         glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 
-        // Insert the new intex buffer info
+        // Insert the new buffer info
         mapIter = mapMapIter->second.insert( std::make_pair(name, iboID) ).first;
 
-        // Save the number of indices for later to compair and expand this size of this IBO
+        // Save the number of indices for later to compare and expand this size of this IBO
         currentMaxFontIndices = maxIndicies;
     }
     else

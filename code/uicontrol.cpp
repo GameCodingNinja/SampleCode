@@ -23,7 +23,7 @@
 #include <system/device.h>
 
 /************************************************************************
-*    desc:  Constructer
+*    desc:  Constructor
 ************************************************************************/
 CUIControl::CUIControl()
     : m_type(NUIControl::ECT_NULL),
@@ -37,13 +37,13 @@ CUIControl::CUIControl()
 
 
 /************************************************************************
-*    desc:  destructer                                                             
+*    desc:  destructor                                                             
 ************************************************************************/
 CUIControl::~CUIControl()
 {
     NDelFunc::DeleteVectorPointers(m_pSpriteVec);
 
-}   // destructer
+}   // destructor
 
 
 /************************************************************************

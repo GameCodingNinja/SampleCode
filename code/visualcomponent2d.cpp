@@ -32,7 +32,7 @@
 #include <utilities/statcounter.h>
 
 /************************************************************************
-*    desc:  Constructer
+*    desc:  Constructor
 ************************************************************************/
 CVisualComponent2d::CVisualComponent2d( const CObjectData2D & objectData )
     : m_visualData( objectData.GetVisualData() ),
@@ -79,7 +79,7 @@ CVisualComponent2d::CVisualComponent2d( const CObjectData2D & objectData )
 
 
 /************************************************************************
-*    desc:  destructer                                                             
+*    desc:  destructor                                                             
 ************************************************************************/
 CVisualComponent2d::~CVisualComponent2d()
 {
@@ -91,7 +91,7 @@ CVisualComponent2d::~CVisualComponent2d()
     // Font IBO are all the same with the only difference being
     // length of the character string.
 
-}   // destructer
+}   // destructor
 
 
 /************************************************************************
@@ -170,7 +170,7 @@ bool CVisualComponent2d::IsActive()
 *          _spaceCharKerning - special kerning just for the space character
 *          lineWrapWidth - width of line to force wrap
 *          lineWrapHeightPadding - add spacing to the lines
-*          hAlign - horzontal alignment
+*          hAlign - horizontal alignment
 *          vAlign - vertical alignment
 *
 *    NOTE: Line wrap feature only supported for horizontal left
@@ -222,7 +222,7 @@ void CVisualComponent2d::CreateFontString( const std::string & fontString )
 *          _spaceCharKerning - special kerning just for the space character
 *          lineWrapWidth - width of line to force wrap
 *          lineWrapHeightPadding - add spacing to the lines
-*          hAlign - horzontal alignment
+*          hAlign - horizontal alignment
 *          vAlign - vertical alignment
 *
 *    NOTE: Line wrap feature only supported for horizontal left
@@ -262,7 +262,7 @@ void CVisualComponent2d::CreateFontString(
         // Allocate the quad array
         boost::scoped_array<CQuad2D> quadBuf( new CQuad2D[m_charCount] );
 
-        // Create a buffer to hold the indicies
+        // Create a buffer to hold the indices
         boost::scoped_array<GLushort> indxBuf( new GLushort[m_vertexCount] );
 
         float xOffset = 0.f;
@@ -284,7 +284,7 @@ void CVisualComponent2d::CreateFontString(
         // Set the initial line offset
         xOffset = lineWidthOffsetVec[lineCount++];
 
-        // Handle the vertical alighnmenrt
+        // Handle the vertical alignment
         if( vAlign == NDefs::EVA_VERT_TOP )
             lineHeightOffset = -initialHeightOffset;
 

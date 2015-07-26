@@ -2,7 +2,7 @@
 /************************************************************************
 *    FILE NAME:       shader.cpp
 *
-*    DESCRIPTION:     shader class singleton
+*    DESCRIPTION:     DirectX shader class wrapper
 ************************************************************************/
 
 // Physical component dependency
@@ -23,7 +23,7 @@
 using namespace std;
 
 /************************************************************************
-*    desc:  Constructer                                                             
+*    desc:  Constructor                                                             
 ************************************************************************/
 CShader::CShader()
        : pActiveEffect(NULL)
@@ -41,15 +41,15 @@ CShader::CShader()
     effectTypeMap.insert(make_pair("vecter_array", EET_VECTOR_ARRAY));
     effectTypeMap.insert(make_pair("matrix_array", EET_MATRIX_ARRAY));
 
-}   // Constructer
+}   // Constructor
 
 
 /************************************************************************
-*    desc:  Destructer                                                             
+*    desc:  Destructor                                                             
 ************************************************************************/
 CShader::~CShader()
 {
-}   // Destructer
+}   // Destructor
 
 
 /************************************************************************
@@ -162,7 +162,7 @@ void CShader::LoadFromXML( const string & filePath )
 
 
 /************************************************************************
-*    desc:  Ennumerate through all the loaded shaders to init them
+*    desc:  Enumerate through all the loaded shaders to init them
 ************************************************************************/
 void CShader::EnumerateShaderInit()
 {
@@ -297,7 +297,7 @@ LPD3DXEFFECT CShader::GetActiveShader()
 
 
 /************************************************************************
-*    desc:  Get the active effect hsader data
+*    desc:  Get the active effect header data
 * 
 *    return: LPD3DXEFFECT - pointer to shader effect
 ************************************************************************/

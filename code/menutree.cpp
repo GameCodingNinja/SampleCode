@@ -20,7 +20,7 @@
 #include <managers/actionmanager.h>
 
 /************************************************************************
-*    desc:  Constructer
+*    desc:  Constructor
 ************************************************************************/
 CMenuTree::CMenuTree( std::map<const std::string, CMenu *> & pMenuMap, 
                       const std::string & rootMenu,
@@ -34,11 +34,11 @@ CMenuTree::CMenuTree( std::map<const std::string, CMenu *> & pMenuMap,
 
 
 /************************************************************************
-*    desc:  destructer                                                             
+*    desc:  destructor                                                             
 ************************************************************************/
 CMenuTree::~CMenuTree()
 {
-}	// destructer
+}   // destructor
 
 
 /************************************************************************

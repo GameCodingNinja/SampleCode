@@ -20,7 +20,7 @@
 #include <utilities/statcounter.h>
 
 /************************************************************************
-*    desc:  Constructer
+*    desc:  Constructor
 ************************************************************************/
 CScriptComponent::CScriptComponent()
 {
@@ -28,15 +28,15 @@ CScriptComponent::CScriptComponent()
 
 
 /************************************************************************
-*    desc:  destructer                                                             
+*    desc:  destructor                                                             
 ************************************************************************/
 CScriptComponent::~CScriptComponent()
 {
-    // Release the contextes we are still holding on to
+    // Release the contexts we are still holding on to
     for( size_t i = 0; i < m_pContextVec.size(); ++i )
         m_pContextVec[i]->Release();
 
-}   // destructer
+}   // destructor
 
 
 /************************************************************************
@@ -75,7 +75,7 @@ void CScriptComponent::Update()
             if( ((*iter)->GetState() == asEXECUTION_SUSPENDED) || 
                 ((*iter)->GetState() == asEXECUTION_PREPARED) )
             {
-                // Increment the active script contex counter
+                // Increment the active script context counter
                 CStatCounter::Instance().IncActiveScriptContexCounter();
 
                 // Execute the script and check for errors

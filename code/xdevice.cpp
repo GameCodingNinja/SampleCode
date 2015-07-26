@@ -2,7 +2,7 @@
 /************************************************************************
 *    FILE NAME:       xdevice.cpp
 *
-*    DESCRIPTION:     For creating and managing a DirectX Device singlton 
+*    DESCRIPTION:     For creating and managing a DirectX Device 
 ************************************************************************/
 
                              // Enables strict compiler error checking. Without this, the compiler doesn't
@@ -25,7 +25,7 @@
 #pragma warning(disable : 4244)
 
 /************************************************************************
-*    desc: Constructer                                                             
+*    desc: Constructor                                                             
 ************************************************************************/
 CXDevice::CXDevice()
         : maximumZDist(0.0f),
@@ -42,7 +42,7 @@ CXDevice::CXDevice()
 
 
 /************************************************************************
-*    desc: Destructer                                                             
+*    desc: Destructor                                                             
 ************************************************************************/
 CXDevice::~CXDevice()
 {

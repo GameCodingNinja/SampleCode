@@ -28,7 +28,7 @@
 using namespace std;
 
 /************************************************************************
-*    desc:  Constructer                                                             
+*    desc:  Constructor                                                             
 ************************************************************************/
 CJointAnimSprite3D::CJointAnimSprite3D()
                   : pCurrentAnim(NULL),
@@ -38,7 +38,7 @@ CJointAnimSprite3D::CJointAnimSprite3D()
                     transFrameCount(0.f),
                     updateAnim(true)
 {
-}   // Constructer
+}   // Constructor
 
 CJointAnimSprite3D::CJointAnimSprite3D( CObjectData3D * pObjData )
                   : pCurrentAnim(NULL),
@@ -52,15 +52,15 @@ CJointAnimSprite3D::CJointAnimSprite3D( CObjectData3D * pObjData )
 
     Init();
 
-}   // Constructer
+}   // Constructor
 
 
 /************************************************************************
-*    desc:  Destructer                                                             
+*    desc:  Destructor                                                             
 ************************************************************************/
 CJointAnimSprite3D::~CJointAnimSprite3D()
 {
-}   // Destructer
+}   // Destructor
 
 
 /************************************************************************

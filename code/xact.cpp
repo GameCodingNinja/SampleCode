@@ -2,7 +2,7 @@
 /************************************************************************
 *    FILE NAME:       xact.cpp
 *
-*    DESCRIPTION:     DirectX sound class wapper
+*    DESCRIPTION:     DirectX sound class wrapper
 ************************************************************************/
 
 // Physical component dependency

@@ -32,7 +32,7 @@
 #pragma warning(disable : 4996)
 
 /************************************************************************
-*    desc:  Constructer                                                             
+*    desc:  Constructor                                                             
 ************************************************************************/
 CJointAnimMesh3D::CJointAnimMesh3D()
                 : jointCount(0)
@@ -40,15 +40,15 @@ CJointAnimMesh3D::CJointAnimMesh3D()
     vertexForamtMask = D3DFVF_XYZB2|D3DFVF_LASTBETA_UBYTE4|D3DFVF_NORMAL|D3DFVF_TEX1;
     vertexDataSize = sizeof(CJVertex);
 
-}   // Constructer
+}   // Constructor
 
 
 /************************************************************************
-*    desc:  Destructer                                                             
+*    desc:  Destructor                                                             
 ************************************************************************/
 CJointAnimMesh3D::~CJointAnimMesh3D()
 {
-}   // Destructer
+}   // Destructor
 
 
 /************************************************************************
