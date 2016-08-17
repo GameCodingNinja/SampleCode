@@ -5,8 +5,10 @@
 *    DESCRIPTION:     vertex buffer manager class singleton
 ************************************************************************/
 
-// Glew dependencies
+#if !(defined(__IPHONEOS__) || defined(__ANDROID__))
+// Glew dependencies (have to be defined first)
 #include <GL/glew.h>
+#endif
 
 // Physical component dependency
 #include <managers/vertexbuffermanager.h>
@@ -18,7 +20,7 @@
 #include <common/uv.h>
 
 /************************************************************************
-*    desc:  Constructor
+*    desc:  Constructer
 ************************************************************************/
 CVertBufMgr::CVertBufMgr()
     : m_currentVBOID(0),
@@ -29,48 +31,43 @@ CVertBufMgr::CVertBufMgr()
 
 
 /************************************************************************
-*    desc:  destructor                                                             
+*    desc:  destructer                                                             
 ************************************************************************/
 CVertBufMgr::~CVertBufMgr()
 {
     // Free all vertex buffers in all groups
-    for( auto mapMapIter = m_vertexBuf2DMapMap.begin();
-         mapMapIter != m_vertexBuf2DMapMap.end();
-         ++mapMapIter )
+    for( auto & mapMapIter : m_vertexBuf2DMapMap )
     {
-        for( auto mapIter = mapMapIter->second.begin();
-             mapIter != mapMapIter->second.end();
-             ++mapIter )
+        for( auto & mapIter : mapMapIter.second )
         {
-            glDeleteBuffers(1, &mapIter->second);
+            glDeleteBuffers(1, &mapIter.second);
         }
     }
 
     // Free all index buffers in all groups
-    for( auto mapMapIter = m_indexBuf2DMapMap.begin();
-         mapMapIter != m_indexBuf2DMapMap.end();
-         ++mapMapIter )
+    for( auto & mapMapIter : m_indexBuf2DMapMap )
     {
-        for( auto mapIter = mapMapIter->second.begin();
-             mapIter != mapMapIter->second.end();
-             ++mapIter )
+        for( auto & mapIter : mapMapIter.second )
         {
-            glDeleteBuffers(1, &mapIter->second);
+            glDeleteBuffers(1, &mapIter.second);
         }
     }
 
-}   // destructor
+}   // destructer
 
 
 /************************************************************************
-*    desc:  Create a 2D quad VBO buffer
+*    desc: Create VBO
 ************************************************************************/
-GLuint CVertBufMgr::CreateQuadVBO( const std::string & group, const std::string & name, const CRect<float> & uv )
+GLuint CVertBufMgr::CreateVBO( 
+    const std::string & group,
+    const std::string & name,
+    const std::vector<CVertex2D> & vertVec )
 {
     // Create the map group if it doesn't already exist
     auto mapMapIter = m_vertexBuf2DMapMap.find( group );
     if( mapMapIter == m_vertexBuf2DMapMap.end() )
-            mapMapIter = m_vertexBuf2DMapMap.insert( std::make_pair(group, std::map<const std::string, GLuint>()) ).first;
+        mapMapIter = m_vertexBuf2DMapMap.emplace( group, std::map<const std::string, GLuint>() ).first;
 
     // See if this vertex buffer ID has already been loaded
     auto mapIter = mapMapIter->second.find( name );
@@ -78,32 +75,21 @@ GLuint CVertBufMgr::CreateQuadVBO( const std::string & group, const std::string 
     // If it's not found, create the vertex buffer and add it to the list
     if( mapIter == mapMapIter->second.end() )
     {
-        // Test VBO data
-        // UV x starts from the top left. UV y starts from the bottom right. Clockwise
-        // verts start from the bottom left. Counter clockwise
-        GLfloat vertexData[] =
-        {
-            -0.5f, -0.5f, 0.0,  uv.x1, uv.y2,
-             0.5f, -0.5f, 0.0,  uv.x2, uv.y2,
-             0.5f,  0.5f, 0.0,  uv.x2, uv.y1,
-            -0.5f,  0.5f, 0.0,  uv.x1, uv.y1
-        };
-
         GLuint vboID = 0;
         glGenBuffers( 1, &vboID );
         glBindBuffer( GL_ARRAY_BUFFER, vboID );
-        glBufferData( GL_ARRAY_BUFFER, sizeof(CQuad2D), vertexData, GL_STATIC_DRAW );
+        glBufferData( GL_ARRAY_BUFFER, sizeof(CVertex2D)*vertVec.size(), vertVec.data(), GL_STATIC_DRAW );
 
         // unbind the buffer
         glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
         // Insert the new vertex buffer info
-        mapIter = mapMapIter->second.insert( std::make_pair(name, vboID) ).first;
+        mapIter = mapMapIter->second.emplace( name, vboID ).first;
     }
 
     return mapIter->second;
 
-}   // CreateBasicQuadVBO
+}   // CreateVBO
 
 
 /************************************************************************
@@ -114,7 +100,7 @@ GLuint CVertBufMgr::CreateIBO( const std::string & group, const std::string & na
     // Create the map group if it doesn't already exist
     auto mapMapIter = m_indexBuf2DMapMap.find( group );
     if( mapMapIter == m_indexBuf2DMapMap.end() )
-            mapMapIter = m_indexBuf2DMapMap.insert( std::make_pair(group, std::map<const std::string, GLuint>()) ).first;
+            mapMapIter = m_indexBuf2DMapMap.emplace( group, std::map<const std::string, GLuint>() ).first;
 
     // See if this intex buffer ID has already been loaded
     auto mapIter = mapMapIter->second.find( name );
@@ -131,7 +117,7 @@ GLuint CVertBufMgr::CreateIBO( const std::string & group, const std::string & na
         glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 
         // Insert the new intex buffer info
-        mapIter = mapMapIter->second.insert( std::make_pair(name, iboID) ).first;
+        mapIter = mapMapIter->second.emplace( name, iboID ).first;
     }
 
     return mapIter->second;
@@ -147,12 +133,12 @@ GLuint CVertBufMgr::CreateDynamicFontIBO( const std::string & group, const std::
     // Create the map group if it doesn't already exist
     auto mapMapIter = m_indexBuf2DMapMap.find( group );
     if( mapMapIter == m_indexBuf2DMapMap.end() )
-            mapMapIter = m_indexBuf2DMapMap.insert( std::make_pair(group, std::map<const std::string, GLuint>()) ).first;
+        mapMapIter = m_indexBuf2DMapMap.emplace( group, std::map<const std::string, GLuint>() ).first;
 
-    // See if this buffer ID has already been loaded
+    // See if this intex buffer ID has already been loaded
     auto mapIter = mapMapIter->second.find( name );
 
-    // If it's not found, create the buffer and add it to the list
+    // If it's not found, create the intex buffer and add it to the list
     if( mapIter == mapMapIter->second.end() )
     {
         GLuint iboID = 0;
@@ -163,10 +149,10 @@ GLuint CVertBufMgr::CreateDynamicFontIBO( const std::string & group, const std::
         // unbind the buffer
         glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 
-        // Insert the new buffer info
-        mapIter = mapMapIter->second.insert( std::make_pair(name, iboID) ).first;
+        // Insert the new intex buffer info
+        mapIter = mapMapIter->second.emplace( name, iboID ).first;
 
-        // Save the number of indices for later to compare and expand this size of this IBO
+        // Save the number of indices for later to compair and expand this size of this IBO
         currentMaxFontIndices = maxIndicies;
     }
     else
@@ -183,7 +169,7 @@ GLuint CVertBufMgr::CreateDynamicFontIBO( const std::string & group, const std::
 
     return mapIter->second;
 
-}   // CreateVertBuffer2D
+}   // CreateDynamicFontIBO
 
 
 /************************************************************************
@@ -191,16 +177,18 @@ GLuint CVertBufMgr::CreateDynamicFontIBO( const std::string & group, const std::
 *    NOTE: This is a bit of a brute force implementation but writing an
 *          algorithm that takes into account an index buffer is difficult
 ************************************************************************/
-GLuint CVertBufMgr::CreateScaledFrame( const std::string & group,
-                                       const std::string & name,
-                                       const CScaledFrame & scaledFrame,
-                                       const CSize<int> & textSize,
-                                       const CSize<int> & size )
+GLuint CVertBufMgr::CreateScaledFrame( 
+    const std::string & group,
+    const std::string & name,
+    const CScaledFrame & scaledFrame,
+    const CSize<int> & textSize,
+    const CSize<int> & size,
+    const std::vector<CVertex2D> & vertVec )
 {
     // Create the map group if it doesn't already exist
     auto mapMapIter = m_vertexBuf2DMapMap.find( group );
     if( mapMapIter == m_vertexBuf2DMapMap.end() )
-            mapMapIter = m_vertexBuf2DMapMap.insert( std::make_pair(group, std::map<const std::string, GLuint>()) ).first;
+        mapMapIter = m_vertexBuf2DMapMap.emplace( group, std::map<const std::string, GLuint>() ).first;
 
     // See if this vertex buffer ID has already been loaded
     auto mapIter = mapMapIter->second.find( name );
@@ -208,119 +196,141 @@ GLuint CVertBufMgr::CreateScaledFrame( const std::string & group,
     // If it's not found, create the vertex buffer and add it to the list
     if( mapIter == mapMapIter->second.end() )
     {
-        // Offsets to center the mesh
-        const CPoint<float> center((size.w / 2.f), (size.h / 2.f));
-        const CSize<float> frameLgth( (float)size.w - (scaledFrame.m_frame.w * 2.f), (float)size.h - (scaledFrame.m_frame.h * 2.f) );
-        const CSize<float> uvLgth( textSize.w - (scaledFrame.m_frame.w * 2.f), textSize.h - (scaledFrame.m_frame.h * 2.f) );
+        std::vector<CVertex2D> vertVecTmp;
+        vertVecTmp.reserve(16);
 
-        CQuad2D quadBuf[8];
-        CVertex2D vertBuf[16];
-
-        // Left frame
-        CreateQuad( CPoint<float>(-center.x, center.y-scaledFrame.m_frame.h),
-                    CSize<float>(scaledFrame.m_frame.w, -frameLgth.h),
-                    CUV(0, scaledFrame.m_frame.h),
-                    CSize<float>(scaledFrame.m_frame.w, uvLgth.h),
-                    textSize,
-                    size,
-                    quadBuf[0] );
-
-        // top left
-        CreateQuad( CPoint<float>(-center.x, center.y),
-                    CSize<float>(scaledFrame.m_frame.w, -scaledFrame.m_frame.h),
-                    CUV(0, 0),
-                    CSize<float>(scaledFrame.m_frame.w, scaledFrame.m_frame.h),
-                    textSize,
-                    size,
-                    quadBuf[1] );
-
-        // top
-        CreateQuad( CPoint<float>(-(center.x-scaledFrame.m_frame.w), center.y),
-                    CSize<float>(frameLgth.w, -scaledFrame.m_frame.h),
-                    CUV(scaledFrame.m_frame.w, 0),
-                    CSize<float>(uvLgth.w, scaledFrame.m_frame.h),
-                    textSize,
-                    size,
-                    quadBuf[2] );
-
-        // top right
-        CreateQuad( CPoint<float>(center.x-scaledFrame.m_frame.w, center.y),
-                    CSize<float>(scaledFrame.m_frame.w, -scaledFrame.m_frame.h),
-                    CUV(scaledFrame.m_frame.w + uvLgth.w,0),
-                    CSize<float>(scaledFrame.m_frame.w, scaledFrame.m_frame.h),
-                    textSize,
-                    size,
-                    quadBuf[3] );
-
-        // right frame
-        CreateQuad( CPoint<float>(center.x-scaledFrame.m_frame.w, center.y-scaledFrame.m_frame.h),
-                    CSize<float>(scaledFrame.m_frame.w, -frameLgth.h),
-                    CUV(scaledFrame.m_frame.w + uvLgth.w, scaledFrame.m_frame.h),
-                    CSize<float>(scaledFrame.m_frame.w, uvLgth.h),
-                    textSize,
-                    size,
-                    quadBuf[4] );
-
-        // bottom right
-        CreateQuad( CPoint<float>(center.x-scaledFrame.m_frame.w, -(center.y-scaledFrame.m_frame.h)),
-                    CSize<float>(scaledFrame.m_frame.w, -scaledFrame.m_frame.h),
-                    CUV(scaledFrame.m_frame.w + uvLgth.w, scaledFrame.m_frame.h + uvLgth.h),
-                    CSize<float>(scaledFrame.m_frame.w, scaledFrame.m_frame.h),
-                    textSize,
-                    size,
-                    quadBuf[5] );
-
-        // bottom frame
-        CreateQuad( CPoint<float>(-(center.x-scaledFrame.m_frame.w), -(center.y-scaledFrame.m_frame.h)),
-                    CSize<float>(frameLgth.w, -scaledFrame.m_frame.h),
-                    CUV(scaledFrame.m_frame.w, scaledFrame.m_frame.h + uvLgth.h),
-                    CSize<float>(uvLgth.w, scaledFrame.m_frame.h),
-                    textSize,
-                    size,
-                    quadBuf[6] );
-
-        // bottom left
-        CreateQuad( CPoint<float>(-center.x, -(center.y-scaledFrame.m_frame.h)),
-                    CSize<float>(scaledFrame.m_frame.w, -scaledFrame.m_frame.h),
-                    CUV(0, scaledFrame.m_frame.h + uvLgth.h),
-                    CSize<float>(scaledFrame.m_frame.w, scaledFrame.m_frame.h),
-                    textSize,
-                    size,
-                    quadBuf[7] );
-
-        // Piece together the needed unique verts
-        vertBuf[0] = quadBuf[0].vert[0];
-        vertBuf[1] = quadBuf[0].vert[1];
-        vertBuf[2] = quadBuf[0].vert[2];
-        vertBuf[3] = quadBuf[0].vert[3];
-        vertBuf[4] = quadBuf[1].vert[1];
-        vertBuf[5] = quadBuf[1].vert[2];
-        vertBuf[6] = quadBuf[2].vert[1];
-        vertBuf[7] = quadBuf[2].vert[3];
-        vertBuf[8] = quadBuf[3].vert[1];
-        vertBuf[9] = quadBuf[3].vert[3];
-        vertBuf[10] = quadBuf[4].vert[0];
-        vertBuf[11] = quadBuf[4].vert[3];
-        vertBuf[12] = quadBuf[5].vert[0];
-        vertBuf[13] = quadBuf[5].vert[3];
-        vertBuf[14] = quadBuf[6].vert[0];
-        vertBuf[15] = quadBuf[7].vert[0];
+        // Generate the scaled frame
+        GenerateScaledFrame( vertVecTmp, scaledFrame, textSize, size );
+        
+        // Add in any additional verts
+        if( !vertVecTmp.empty() )
+            vertVecTmp.insert( vertVecTmp.end(), vertVec.begin(), vertVec.end() );
 
         GLuint vboID = 0;
         glGenBuffers( 1, &vboID );
         glBindBuffer( GL_ARRAY_BUFFER, vboID );
-        glBufferData( GL_ARRAY_BUFFER, sizeof(CVertex2D)*16, vertBuf, GL_STATIC_DRAW );
+        glBufferData( GL_ARRAY_BUFFER, sizeof(CVertex2D)*vertVecTmp.size(), vertVecTmp.data(), GL_STATIC_DRAW );
 
         // unbind the buffer
         glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
         // Insert the new vertex buffer info
-        mapIter = mapMapIter->second.insert( std::make_pair(name, vboID) ).first;
+        mapIter = mapMapIter->second.emplace( name, vboID ).first;
     }
 
     return mapIter->second;
 
 }   // CreateScaledFrame
+
+
+/************************************************************************
+*    desc: Generate a scaled frame
+*    NOTE: This is a bit of a brute force implementation but writing an
+*          algorithm that takes into account an index buffer is difficult
+************************************************************************/
+void CVertBufMgr::GenerateScaledFrame(
+    std::vector<CVertex2D> & vertVec,
+    const CScaledFrame & scaledFrame,
+    const CSize<int> & textSize,
+    const CSize<int> & size )
+{
+    // Offsets to center the mesh
+    const CPoint<float> center((size.w / 2.f), (size.h / 2.f));
+    const CSize<float> frameLgth( (float)size.w - (scaledFrame.m_frame.w * 2.f), (float)size.h - (scaledFrame.m_frame.h * 2.f) );
+    const CSize<float> uvLgth( textSize.w - (scaledFrame.m_frame.w * 2.f), textSize.h - (scaledFrame.m_frame.h * 2.f) );
+    
+    CQuad2D quadBuf[8];
+    
+    // Left frame
+    CreateQuad( CPoint<float>(-center.x, center.y-scaledFrame.m_frame.h),
+                CSize<float>(scaledFrame.m_frame.w, -frameLgth.h),
+                CUV(0, scaledFrame.m_frame.h),
+                CSize<float>(scaledFrame.m_frame.w, uvLgth.h),
+                textSize,
+                size,
+                quadBuf[0] );
+
+    // top left
+    CreateQuad( CPoint<float>(-center.x, center.y),
+                CSize<float>(scaledFrame.m_frame.w, -scaledFrame.m_frame.h),
+                CUV(0, 0),
+                CSize<float>(scaledFrame.m_frame.w, scaledFrame.m_frame.h),
+                textSize,
+                size,
+                quadBuf[1] );
+
+    // top
+    CreateQuad( CPoint<float>(-(center.x-scaledFrame.m_frame.w), center.y),
+                CSize<float>(frameLgth.w, -scaledFrame.m_frame.h),
+                CUV(scaledFrame.m_frame.w, 0),
+                CSize<float>(uvLgth.w, scaledFrame.m_frame.h),
+                textSize,
+                size,
+                quadBuf[2] );
+
+    // top right
+    CreateQuad( CPoint<float>(center.x-scaledFrame.m_frame.w, center.y),
+                CSize<float>(scaledFrame.m_frame.w, -scaledFrame.m_frame.h),
+                CUV(scaledFrame.m_frame.w + uvLgth.w,0),
+                CSize<float>(scaledFrame.m_frame.w, scaledFrame.m_frame.h),
+                textSize,
+                size,
+                quadBuf[3] );
+
+    // right frame
+    CreateQuad( CPoint<float>(center.x-scaledFrame.m_frame.w, center.y-scaledFrame.m_frame.h),
+                CSize<float>(scaledFrame.m_frame.w, -frameLgth.h),
+                CUV(scaledFrame.m_frame.w + uvLgth.w, scaledFrame.m_frame.h),
+                CSize<float>(scaledFrame.m_frame.w, uvLgth.h),
+                textSize,
+                size,
+                quadBuf[4] );
+
+    // bottom right
+    CreateQuad( CPoint<float>(center.x-scaledFrame.m_frame.w, -(center.y-scaledFrame.m_frame.h)),
+                CSize<float>(scaledFrame.m_frame.w, -scaledFrame.m_frame.h),
+                CUV(scaledFrame.m_frame.w + uvLgth.w, scaledFrame.m_frame.h + uvLgth.h),
+                CSize<float>(scaledFrame.m_frame.w, scaledFrame.m_frame.h),
+                textSize,
+                size,
+                quadBuf[5] );
+
+    // bottom frame
+    CreateQuad( CPoint<float>(-(center.x-scaledFrame.m_frame.w), -(center.y-scaledFrame.m_frame.h)),
+                CSize<float>(frameLgth.w, -scaledFrame.m_frame.h),
+                CUV(scaledFrame.m_frame.w, scaledFrame.m_frame.h + uvLgth.h),
+                CSize<float>(uvLgth.w, scaledFrame.m_frame.h),
+                textSize,
+                size,
+                quadBuf[6] );
+
+    // bottom left
+    CreateQuad( CPoint<float>(-center.x, -(center.y-scaledFrame.m_frame.h)),
+                CSize<float>(scaledFrame.m_frame.w, -scaledFrame.m_frame.h),
+                CUV(0, scaledFrame.m_frame.h + uvLgth.h),
+                CSize<float>(scaledFrame.m_frame.w, scaledFrame.m_frame.h),
+                textSize,
+                size,
+                quadBuf[7] );
+
+    // Piece together the needed unique verts
+    vertVec.push_back( quadBuf[0].vert[0] );
+    vertVec.push_back( quadBuf[0].vert[1] );
+    vertVec.push_back( quadBuf[0].vert[2] );
+    vertVec.push_back( quadBuf[0].vert[3] );
+    vertVec.push_back( quadBuf[1].vert[1] );
+    vertVec.push_back( quadBuf[1].vert[2] );
+    vertVec.push_back( quadBuf[2].vert[1] );
+    vertVec.push_back( quadBuf[2].vert[3] );
+    vertVec.push_back( quadBuf[3].vert[1] );
+    vertVec.push_back( quadBuf[3].vert[3] );
+    vertVec.push_back( quadBuf[4].vert[0] );
+    vertVec.push_back( quadBuf[4].vert[3] );
+    vertVec.push_back( quadBuf[5].vert[0] );
+    vertVec.push_back( quadBuf[5].vert[3] );
+    vertVec.push_back( quadBuf[6].vert[0] );
+    vertVec.push_back( quadBuf[7].vert[0] );
+}
 
 
 /************************************************************************
@@ -335,6 +345,9 @@ void CVertBufMgr::CreateQuad(
     const CSize<float> & size,
     CQuad2D & quadBuf )
 {
+    // For OpenGL pixel perfect rendering is an even size graphic,
+    // for DirectX, it's an odd size graphic.
+    
     // Check if the width or height is odd. If so, we offset 
     // by 0.5 for proper orthographic rendering
     float additionalOffsetX = 0;
@@ -370,6 +383,25 @@ void CVertBufMgr::CreateQuad(
     quadBuf.vert[3].uv.v = (uv.v + uvSize.h) / textSize.h;
 
 }   // CreateScaledFrameSegment
+
+
+/************************************************************************
+*    desc: See if a VBO already exists
+************************************************************************/
+GLuint CVertBufMgr::IsVBO( const std::string & group, const std::string & name )
+{
+    // See if the group exists
+    auto mapMapIter = m_vertexBuf2DMapMap.find( group );
+    if( mapMapIter == m_vertexBuf2DMapMap.end() )
+        return 0;
+
+    // See if this vertex buffer ID has already been created
+    auto mapIter = mapMapIter->second.find( name );
+    if( mapIter == mapMapIter->second.end() )
+        return 0;
+
+    return mapIter->second;
+}
 
 
 /************************************************************************
@@ -409,7 +441,7 @@ void CVertBufMgr::UnbindBuffers()
     glBindBuffer( GL_ARRAY_BUFFER, 0 );
     glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 
-}	// UnbindTexture
+}   // UnbindTexture
 
 
 /************************************************************************
@@ -422,11 +454,9 @@ void CVertBufMgr::DeleteBufferGroupFor2D( const std::string & group )
         if( mapMapIter != m_vertexBuf2DMapMap.end() )
         {
             // Delete all the buffers in this group
-            for( auto mapIter = mapMapIter->second.begin();
-                 mapIter != mapMapIter->second.end();
-                 ++mapIter )
+            for( auto & mapIter : mapMapIter->second )
             {
-                glDeleteBuffers(1, &mapIter->second);
+                glDeleteBuffers(1, &mapIter.second);
             }
 
             // Erase this group
@@ -439,11 +469,9 @@ void CVertBufMgr::DeleteBufferGroupFor2D( const std::string & group )
         if( mapMapIter != m_indexBuf2DMapMap.end() )
         {
             // Delete all the buffers in this group
-            for( auto mapIter = mapMapIter->second.begin();
-                 mapIter != mapMapIter->second.end();
-                 ++mapIter )
+            for( auto & mapIter : mapMapIter->second )
             {
-                glDeleteBuffers(1, &mapIter->second);
+                glDeleteBuffers(1, &mapIter.second);
             }
 
             // Erase this group

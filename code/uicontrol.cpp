@@ -11,75 +11,52 @@
 // Game lib dependencies
 #include <utilities/xmlParser.h>
 #include <utilities/xmlparsehelper.h>
-#include <utilities/deletefuncs.h>
 #include <utilities/genfunc.h>
 #include <utilities/settings.h>
-#include <utilities/exceptionhandling.h>
-#include <gui/menusprite.h>
+#include <2d/sprite2d.h>
 #include <gui/menudefs.h>
 #include <gui/ismartguibase.h>
-#include <objectdata/objectdatamanager2d.h>
+#include <gui/messagecracker.h>
+#include <objectdata/objectdatamanager.h>
 #include <objectdata/objectdata2d.h>
 #include <system/device.h>
+#include <managers/actionmanager.h>
+#include <common/fontproperties.h>
+
+// Standard lib dependencies
+#include <cstring>
+#include <iostream>
 
 /************************************************************************
-*    desc:  Constructor
+*    desc:  Constructer
 ************************************************************************/
-CUIControl::CUIControl()
-    : m_type(NUIControl::ECT_NULL),
-      m_state(NUIControl::ECS_NULL),
-      m_lastState(NUIControl::ECS_NULL),
-      m_actionType(NUIControl::ECAT_NULL),
-      m_mouseSelectType(NMenu::EAP_UP),
-      m_fontSpriteCount(0)
+CUIControl::CUIControl( const std::string & group ) :
+    CControlBase( group ),
+    m_scriptComponent(group),
+    m_state(NUIControl::ECS_NULL),
+    m_lastState(NUIControl::ECS_NULL),
+    m_actionType(NUIControl::ECAT_NULL),
+    m_mouseSelectType(NDefs::EAP_UP)
 {
 }   // constructor
 
 
 /************************************************************************
-*    desc:  destructor                                                             
+*    desc:  destructer
 ************************************************************************/
 CUIControl::~CUIControl()
 {
-    NDelFunc::DeleteVectorPointers(m_pSpriteVec);
-
-}   // destructor
+}   // destructer
 
 
 /************************************************************************
 *    desc:  Load the control info from XML node
-*  
+*
 *    param: node - XML node
 ************************************************************************/
 void CUIControl::LoadFromNode( const XMLNode & node )
 {
-    // See if we have a list of strings
-    XMLNode stringLstNode = node.getChildNode( "fontStringLst" );
-    if( !stringLstNode.isEmpty() )
-    {
-        for( int i = 0; i < stringLstNode.nChildNode(); ++i )
-            m_stringVec.push_back( stringLstNode.getChildNode( "string", i ).getAttribute( "text" ) );
-    }
-
-    // Get the file path node to the control specific xml code
-    XMLNode filePathNode = node.getChildNode( "filePath" );
-
-    // Load the control specific xml file
-    if( !filePathNode.isEmpty() )
-    {
-        // Get the control's file path
-        std::string controlFilePath = filePathNode.getAttribute( "file" );
-
-        // Open and parse the control's XML file:
-        XMLNode controlNode = XMLNode::openFileHelper( controlFilePath.c_str(), "UIControl" );
-
-        // Load xml specific control code
-        LoadControlFromNode( controlNode );
-    }
-
-    // Set the controls name
-    if( node.isAttributeSet( "name" ) )
-        SetName( std::string( node.getAttribute( "name" ) ) );
+    CControlBase::LoadFromNode( node );
 
     // Set the default state of the control
     if( node.isAttributeSet( "defaultState" ) )
@@ -87,8 +64,8 @@ void CUIControl::LoadFromNode( const XMLNode & node )
 
     // Set if mouse selection is the down message
     if( node.isAttributeSet( "mouseSelectDown" ) )
-        if( std::string( node.getAttribute( "mouseSelectDown" ) ) == "true" )
-            m_mouseSelectType = NMenu::EAP_DOWN;
+        if( std::strcmp( node.getAttribute( "mouseSelectDown" ), "true") == 0 )
+            m_mouseSelectType = NDefs::EAP_DOWN;
 
     // Setup the action
     XMLNode actionNode = node.getChildNode( "action" );
@@ -108,10 +85,10 @@ void CUIControl::LoadFromNode( const XMLNode & node )
     if( !stateScriptNode.isEmpty() )
     {
         if( stateScriptNode.isAttributeSet( "onActive" ) )
-            m_scriptFunction.insert( std::make_pair(NUIControl::ECSF_ON_ACTIVE, stateScriptNode.getAttribute( "onActive" )) );
+            m_scriptFunction.emplace( NUIControl::ECSF_ON_ACTIVE, stateScriptNode.getAttribute( "onActive" ) );
 
         if( stateScriptNode.isAttributeSet( "onSelect" ) )
-            m_scriptFunction.insert( std::make_pair(NUIControl::ECSF_ON_SELECTED, stateScriptNode.getAttribute( "onSelect" )) );
+            m_scriptFunction.emplace( NUIControl::ECSF_ON_SELECTED, stateScriptNode.getAttribute( "onSelect" ) );
     }
 
     // Get the scrolling info
@@ -121,21 +98,21 @@ void CUIControl::LoadFromNode( const XMLNode & node )
         m_scrollParam.SetStartDelay( std::atoi(scrollNode.getAttribute( "startDelay" )) );
         m_scrollParam.SetScrollDelay( std::atoi(scrollNode.getAttribute( "scrollDelay" )) );
 
-        if( scrollNode.isAttributeSet( "up" ) && (std::string(scrollNode.getAttribute( "up" )) == "true") )
+        if( scrollNode.isAttributeSet( "up" ) && (std::strcmp(scrollNode.getAttribute( "up" ), "true") == 0) )
             m_scrollParam.AddMsg( NMenu::EGE_MENU_UP_ACTION );
 
-        if( scrollNode.isAttributeSet( "down" ) && (std::string(scrollNode.getAttribute( "down" )) == "true") )
+        if( scrollNode.isAttributeSet( "down" ) && (std::strcmp(scrollNode.getAttribute( "down" ), "true") == 0) )
             m_scrollParam.AddMsg( NMenu::EGE_MENU_DOWN_ACTION );
 
-        if( scrollNode.isAttributeSet( "left" ) && (std::string(scrollNode.getAttribute( "left" )) == "true") )
+        if( scrollNode.isAttributeSet( "left" ) && (std::strcmp(scrollNode.getAttribute( "left" ), "true") == 0) )
             m_scrollParam.AddMsg( NMenu::EGE_MENU_LEFT_ACTION );
 
-        if( scrollNode.isAttributeSet( "right" ) && (std::string(scrollNode.getAttribute( "right" )) == "true") )
+        if( scrollNode.isAttributeSet( "right" ) && (std::strcmp(scrollNode.getAttribute( "right" ), "true") == 0) )
             m_scrollParam.AddMsg( NMenu::EGE_MENU_RIGHT_ACTION );
     }
 
     // Get the size modifier info
-    m_sizeModifier = NParseHelper::LoadSize( node );
+    m_sizeModifier = NParseHelper::LoadRect( node );
 
     // Init to the default state
     RevertToDefaultState();
@@ -148,23 +125,19 @@ void CUIControl::LoadFromNode( const XMLNode & node )
 ************************************************************************/
 void CUIControl::LoadControlFromNode( const XMLNode & controlNode )
 {
-    // Get the object type string
-    const XMLNode listGroupNode = controlNode.getChildNode( "group" );
-    m_group = listGroupNode.getAttribute( "name" );
-
     // Get the list of object data associated with this button
     const XMLNode objDataLstNode = controlNode.getChildNode( "spriteList" );
 
     if( !objDataLstNode.isEmpty() )
     {
-        m_pSpriteVec.reserve( objDataLstNode.nChildNode() );
+        size_t fontSpriteCount(0);
 
         for( int i = 0; i < objDataLstNode.nChildNode(); ++i )
         {
             const XMLNode objDataNode = objDataLstNode.getChildNode( "sprite", i );
 
             // Load the sprite from node
-            LoadSpriteFromNode( objDataNode );
+            LoadSpriteFromNode( objDataNode, fontSpriteCount );
         }
     }
 
@@ -174,82 +147,50 @@ void CUIControl::LoadControlFromNode( const XMLNode & controlNode )
 /************************************************************************
 *    desc:  Load a sprite from an XML node
 ************************************************************************/
-void CUIControl::LoadSpriteFromNode( const XMLNode & node )
+void CUIControl::LoadSpriteFromNode( const XMLNode & node, size_t & fontSpriteCount )
 {
     // Get the type of object
     std::string objectName = node.getAttribute( "objectName" );
 
-    m_pSpriteVec.push_back( new CMenuSprite( CObjectDataMgr2D::Instance().GetData( m_group, objectName ) ) );
+    // Internally allocate the sprite in the deque
+    m_spriteDeq.emplace_back( CObjectDataMgr::Instance().GetData2D( m_group, objectName ) );
+    auto & rSprite = m_spriteDeq.back();
 
     // Load the transform data
-    m_pSpriteVec.back()->LoadTransFromNode( node );
+    rSprite.LoadTransFromNode( node );
 
     // Init the script functions
-    m_pSpriteVec.back()->InitScriptFunctions( node );
+    rSprite.InitScriptFunctions( node );
 
     // See if this sprite is used for rendering a font string
     const XMLNode fontNode = node.getChildNode( "font" );
     if( !fontNode.isEmpty() )
     {
-        float kerning(0);
-        float spaceCharKerning(0);
-        float lineWrapWidth(-1);
-        float lineWrapHeight(0);
-        NDefs::EHorzAlignment horzAlign(NDefs::EHA_HORZ_CENTER);
-        NDefs::EVertAlignment vertAlign(NDefs::EVA_VERT_CENTER);
-
-        // Get the must have font related items
-        std::string fontName = fontNode.getAttribute( "fontName" );
-
-        // Get the attributes node
-        const XMLNode attrNode = fontNode.getChildNode( "attributes" );
-        if( !attrNode.isEmpty() )
-        {
-            if( attrNode.isAttributeSet( "kerning" ) )
-                kerning = std::atof(attrNode.getAttribute( "kerning" ));
-
-            if( attrNode.isAttributeSet( "spaceCharKerning" ) )
-                spaceCharKerning = atof(attrNode.getAttribute( "spaceCharKerning" ));
-
-            if( attrNode.isAttributeSet( "lineWrapWidth" ) )
-                lineWrapWidth = atof(attrNode.getAttribute( "lineWrapWidth" ));
-
-            if( attrNode.isAttributeSet( "lineWrapHeight" ) )
-                lineWrapHeight = atof(attrNode.getAttribute( "lineWrapHeight" ));
-        }
-
-        // Get the alignment node
-        const XMLNode alignmentNode = fontNode.getChildNode( "alignment" );
-        if( !alignmentNode.isEmpty() )
-        {
-            // Set the default alignment
-            horzAlign = NParseHelper::LoadHorzAlignment( alignmentNode, NDefs::EHA_HORZ_CENTER );
-            vertAlign = NParseHelper::LoadVertAlignment( alignmentNode, NDefs::EVA_VERT_CENTER );
-        }
-
-        // Set the font info
-        m_pSpriteVec.back()->GetVisualComponent().SetFontInfo( 
-            fontName, kerning, spaceCharKerning, lineWrapWidth, lineWrapHeight, horzAlign, vertAlign );
+        // Load the font properties from XML node
+        rSprite.GetVisualComponent().LoadFontPropFromNode( fontNode );
 
         // Create the font by setting the font string to the first font sprite
-        if( !m_stringVec.empty() && (m_fontSpriteCount < m_stringVec.size()) )
+        if( !m_stringVec.empty() && (fontSpriteCount < m_stringVec.size()) )
         {
-            m_pSpriteVec.back()->GetVisualComponent().CreateFontString( m_stringVec.at(m_fontSpriteCount) );
+            rSprite.GetVisualComponent().CreateFontString( m_stringVec.at(fontSpriteCount) );
         }
 
         // set the color if it is different
-        m_pSpriteVec.back()->GetVisualComponent().SetColor( NParseHelper::LoadColor( fontNode, m_pSpriteVec.back()->GetVisualComponent().GetColor() ) );
+        rSprite.GetVisualComponent().SetColor( NParseHelper::LoadColor( fontNode, rSprite.GetVisualComponent().GetColor() ) );
 
-        ++m_fontSpriteCount;
+        ++fontSpriteCount;
     }
     else
     {
-        // Find the largest size width and height of the different sprites for this controls size
-        if( m_pSpriteVec.back()->GetObjectData().GetSize().GetW() > m_size.GetW() )
-            m_size.w = m_pSpriteVec.back()->GetObjectData().GetSize().GetW();
+        // Find the largest size width and height of the different sprites for the controls size
+        const float width( rSprite.GetObjectData().GetSize().w + std::fabs( rSprite.GetPos().x ) );
+        const float height( rSprite.GetObjectData().GetSize().h + std::fabs( rSprite.GetPos().y ) );
 
-        if( m_pSpriteVec.back()->GetObjectData().GetSize().GetH() > m_size.h )
-            m_size.h = m_pSpriteVec.back()->GetObjectData().GetSize().GetH();
+        if( width > m_size.w )
+            m_size.w = width;
+
+        if( height  > m_size.h )
+            m_size.h = height;
     }
 
 }   // LoadSpriteFromNode
@@ -262,8 +203,8 @@ void CUIControl::Update()
 {
     m_scriptComponent.Update();
 
-    for( size_t i = 0; i < m_pSpriteVec.size(); ++i )
-        m_pSpriteVec[i]->Update();
+    for( auto & iter : m_spriteDeq )
+        iter.Update();
 
 }   // Update
 
@@ -271,18 +212,27 @@ void CUIControl::Update()
 /************************************************************************
 *    desc:  Transform the control
 ************************************************************************/
-void CUIControl::DoTransform( const CObject & object )
+void CUIControl::DoTransform( const CObject2D & object )
 {
     Transform( object.GetMatrix(), object.WasWorldPosTranformed() );
 
-    for( size_t i = 0; i < m_pSpriteVec.size(); ++i )
-        m_pSpriteVec[i]->Transform( GetMatrix(), WasWorldPosTranformed() );
+    for( auto & iter : m_spriteDeq )
+        iter.Transform( GetMatrix(), WasWorldPosTranformed() );
 
-    // Transform collision
+    TransformCollision();
+
+}   // DoTransform
+
+
+/************************************************************************
+*    desc:  Transform the collision
+************************************************************************/
+void CUIControl::TransformCollision()
+{
     if( WasWorldPosTranformed() && !m_size.IsEmpty() )
     {
         CMatrix matrix, finalMatrix;
-        matrix.Scale( CSettings::Instance().GetScreenRatio().GetH() );
+        matrix.Scale( CSettings::Instance().GetOrthoHeightAspectRatio( NDefs::EOAR_SIZE_DIV_DEFAULT ) );
         finalMatrix = GetMatrix() * matrix;
         finalMatrix.InvertY();
 
@@ -290,21 +240,21 @@ void CUIControl::DoTransform( const CObject & object )
         CSize<float> screenHalf = CSettings::Instance().GetSizeHalf();
 
         // Create the rect of the control based on half it's size
-        float halfwidth = (m_size.GetW() + m_sizeModifier.GetW()) * 0.5f;
-        float halfHeight = (m_size.GetH() + m_sizeModifier.GetH()) * 0.5f;
+        float halfwidth = m_size.GetW() * 0.5f;
+        float halfHeight = m_size.GetH() * 0.5f;
 
         CQuad quad;
-        quad.point[0].x = -halfwidth;
-        quad.point[0].y = -halfHeight;
-        quad.point[1].x = halfwidth;
-        quad.point[1].y = -halfHeight;
-        quad.point[2].x = halfwidth;
-        quad.point[2].y = halfHeight;
-        quad.point[3].x = -halfwidth;
-        quad.point[3].y = halfHeight;
+        quad.point[0].x = -halfwidth + -m_sizeModifier.x1;
+        quad.point[0].y = -halfHeight + -m_sizeModifier.y1;
+        quad.point[1].x = halfwidth + m_sizeModifier.x2;
+        quad.point[1].y = -halfHeight + -m_sizeModifier.y1;
+        quad.point[2].x = halfwidth + m_sizeModifier.x2;
+        quad.point[2].y = halfHeight + m_sizeModifier.y2;
+        quad.point[3].x = -halfwidth + -m_sizeModifier.x1;
+        quad.point[3].y = halfHeight + m_sizeModifier.y2;
 
         finalMatrix.Transform( m_collisionQuad, quad );
-        
+
         // Convert the translated rect to screen coordinates
         m_collisionQuad.point[0].x += screenHalf.GetW();
         m_collisionQuad.point[0].y += screenHalf.GetH();
@@ -322,16 +272,16 @@ void CUIControl::DoTransform( const CObject & object )
         m_collisionCenter.y += screenHalf.GetH();
     }
 
-}   // DoTransform
+}   // TransformCollision
 
 
 /************************************************************************
-*    desc:  do the render                                                            
+*    desc:  do the render
 ************************************************************************/
 void CUIControl::Render( const CMatrix & matrix )
 {
-    for( size_t i = 0; i < m_pSpriteVec.size(); ++i )
-        m_pSpriteVec[i]->Render( matrix );
+    for( auto & iter : m_spriteDeq )
+        iter.Render( matrix );
 
 }   // Render
 
@@ -366,6 +316,9 @@ void CUIControl::HandleEvent( const SDL_Event & rEvent )
         OnTransOut( rEvent );
     }
 
+    // Do any smart event handling
+    SmartHandleEvent( rEvent );
+
 }   // HandleEvent
 
 
@@ -381,9 +334,6 @@ void CUIControl::OnTransIn( const SDL_Event & rEvent )
             SetDisplayState();
 
         PrepareSpriteScriptFunction( NUIControl::ESSF_TRANS_IN );
-
-        if( m_scpSmartGui )
-            m_scpSmartGui->Display();
     }
 
 }   // OnTransIn
@@ -395,7 +345,7 @@ void CUIControl::OnTransOut( const SDL_Event & rEvent )
 {
     if( rEvent.user.code == NMenu::ETC_BEGIN )
     {
-        // Reset the control 
+        // Reset the control
         Reset();
 
         // Recycle the contexts
@@ -415,11 +365,11 @@ void CUIControl::OnTransOut( const SDL_Event & rEvent )
 ************************************************************************/
 void CUIControl::OnStateChange( const SDL_Event & rEvent )
 {
-    const std::string & ctrlName = *(std::string *)rEvent.user.data1;
     NUIControl::EControlState state = NUIControl::EControlState(rEvent.user.code);
 
     // This control is the focus of the state change
-    if( ctrlName == m_name )
+    // The control's "this" pointer is used as a means of identification
+    if( rEvent.user.data1 == (void *)this )
         ChangeState( state );
     else
         DeactivateControl();
@@ -452,7 +402,10 @@ void CUIControl::OnSelectExecute( const SDL_Event & rEvent )
             NGenFunc::DispatchEvent( SDL_QUIT );
 
         // Smart gui execution
-        ExecuteAction();
+        SmartExecuteAction();
+        
+        // Boost signal execute action
+        m_executionActionSignal();
     }
 
 }   // OnSelectExecute
@@ -467,8 +420,13 @@ void CUIControl::OnSetActiveControl( const SDL_Event & rEvent )
         (m_lastState > NUIControl::ECS_INACTIVE))
     {
         m_lastState = m_state = NUIControl::ECS_ACTIVE;
-        RecycleContext();
-        SetDisplayState();
+
+        // Don't animate the control if the mouse was used
+        if( !CActionMgr::Instance().WasLastDeviceMouse() )
+        {
+            RecycleContext();
+            SetDisplayState();
+        }
     }
 
 }   // OnSetActiveControl
@@ -482,11 +440,43 @@ void CUIControl::OnReactivate( const SDL_Event & rEvent )
     if( m_state > NUIControl::ECS_INACTIVE )
     {
         m_lastState = m_state = NUIControl::ECS_ACTIVE;
-        RecycleContext();
-        SetDisplayState();
+        
+        // Don't animate the control if the mouse was used
+        if( !CActionMgr::Instance().WasLastDeviceMouse() ||
+            IsPointInControl( CActionMgr::Instance().GetLastMousePos() ) )
+        {
+            RecycleContext();
+            SetDisplayState();
+        }
     }
 
 }   // OnReactivate
+
+
+/************************************************************************
+*    desc:  Handle the mouse move
+************************************************************************/
+bool CUIControl::OnMouseMove( const SDL_Event & rEvent )
+{
+    bool result(false);
+
+    if( !IsDisabled() && IsPointInControl( rEvent.motion.x, rEvent.motion.y ) )
+    {
+        result = true;
+
+        // Only send the message if it's not already active
+        if( !IsActive() )
+        {
+            NGenFunc::DispatchEvent(
+                NMenu::EGE_MENU_CONTROL_STATE_CHANGE,
+                NUIControl::ECS_ACTIVE,
+                (void *)this );
+        }
+    }
+
+    return result;
+
+}   // OnMouseMove
 
 
 /************************************************************************
@@ -498,7 +488,7 @@ void CUIControl::ChangeState( NUIControl::EControlState state )
     {
         m_state = state;
 
-        // Call any script functions associated with the state change
+        // Prepare any script functions associated with the state change
         if( m_state == NUIControl::ECS_ACTIVE )
             PrepareControlScriptFunction( NUIControl::ECSF_ON_ACTIVE );
 
@@ -526,10 +516,10 @@ bool CUIControl::ActivateControl()
 
         RecycleContext();
         SetDisplayState();
-        
+
         return true;
     }
-    
+
     return false;
 
 }   // ActivateControl
@@ -541,7 +531,7 @@ bool CUIControl::ActivateControl()
 void CUIControl::DeactivateControl()
 {
     // The focus has switched away from this control
-    if( (m_lastState == NUIControl::ECS_NULL) || 
+    if( (m_lastState == NUIControl::ECS_NULL) ||
         (m_lastState > NUIControl::ECS_INACTIVE) )
     {
         // Reset the control
@@ -583,8 +573,41 @@ void CUIControl::SetDisplayState()
 ************************************************************************/
 void CUIControl::PrepareSpriteScriptFunction( NUIControl::ESpriteScriptFunctions scriptFunc )
 {
-    for( size_t i = 0; i < m_pSpriteVec.size(); ++i )
-        m_pSpriteVec[i]->Prepare( scriptFunc );
+    std::string scriptFuncMapKey;
+    bool forceUpdate(false);
+    
+    switch( scriptFunc )
+    {
+        case NUIControl::ESSF_TRANS_IN:
+            scriptFuncMapKey = "in";
+        break;
+        
+        case NUIControl::ESSF_TRANS_OUT:
+            scriptFuncMapKey = "out";
+        break;
+        
+        case NUIControl::ESSF_DISABLED:
+            scriptFuncMapKey = "disabled";
+            forceUpdate = true;
+        break;
+        
+        case NUIControl::ESSF_INACTIVE:
+            scriptFuncMapKey = "inactive";
+            forceUpdate = true;
+        break;
+        
+        case NUIControl::ESSF_ACTIVE:
+            scriptFuncMapKey = "active";
+        break;
+        
+        case NUIControl::ESSF_SELECTED:
+            scriptFuncMapKey = "selected";
+        break;
+    };
+    
+    // Force an update for states that just change settings and don't animate 
+    for( auto & iter : m_spriteDeq )
+        iter.Prepare( scriptFuncMapKey, forceUpdate );
 
 }   // PrepareSpriteScriptFunction
 
@@ -597,7 +620,7 @@ void CUIControl::PrepareControlScriptFunction( NUIControl::EControlScriptFunctio
     auto iter = m_scriptFunction.find(scriptFunc);
 
     if( iter != m_scriptFunction.end() )
-        m_scriptComponent.PrepareScript(iter->second, m_group);
+        m_scriptComponent.Prepare(iter->second);
 
 }   // PrepareControlScriptFunction
 
@@ -621,8 +644,8 @@ void CUIControl::Reset( bool complete )
 ************************************************************************/
 void CUIControl::RecycleContext()
 {
-    for( size_t i = 0; i < m_pSpriteVec.size(); ++i )
-        m_pSpriteVec[i]->GetScriptComponent().ResetAndRecycle();
+    for( auto & iter : m_spriteDeq )
+        iter.GetScriptComponent().ResetAndRecycle();
 
 }   // RecycleContext
 
@@ -658,15 +681,15 @@ void CUIControl::SetDefaultState( NUIControl::EControlState value )
 ************************************************************************/
 void CUIControl::SetSmartGui( CSmartGuiControl * pSmartGuiControl )
 {
-    m_scpSmartGui.reset( pSmartGuiControl );
+    m_upSmartGui.reset( pSmartGuiControl );
 
-}	// SetSmartGui
+}   // SetSmartGui
 
 CSmartGuiControl * CUIControl::GetSmartGuiPtr()
 {
-    return m_scpSmartGui.get();
+    return m_upSmartGui.get();
 
-}	// GetActionType
+}   // GetActionType
 
 
 /************************************************************************
@@ -674,32 +697,32 @@ CSmartGuiControl * CUIControl::GetSmartGuiPtr()
 ************************************************************************/
 void CUIControl::SmartCreate()
 {
-    if( m_scpSmartGui )
-        m_scpSmartGui->Create();
+    if( m_upSmartGui )
+        m_upSmartGui->Create();
 
-}	// SmartCreate
-
-
-/************************************************************************
-*    desc:  Execute the action
-************************************************************************/
-void CUIControl::ExecuteAction()
-{
-    if( m_scpSmartGui )
-        m_scpSmartGui->Execute();
-
-}	// ExecuteAction
+}   // SmartCreate
 
 
 /************************************************************************
-*    desc:  Do any smart Display Init
+*    desc:  Do any smart event handling
 ************************************************************************/
-void CUIControl::SmartDisplay()
+void CUIControl::SmartHandleEvent( const SDL_Event & rEvent )
 {
-    if( m_scpSmartGui )
-        m_scpSmartGui->Display();
+    if( m_upSmartGui )
+        m_upSmartGui->HandleEvent( rEvent );
 
-}	// SmartDisplay
+}   // SmartHandleEvent
+
+
+/************************************************************************
+*    desc:  Smart execute the action
+************************************************************************/
+void CUIControl::SmartExecuteAction()
+{
+    if( m_upSmartGui )
+        m_upSmartGui->Execute();
+
+}   // SmartExecuteAction
 
 
 /************************************************************************
@@ -729,38 +752,6 @@ void CUIControl::SetState( NUIControl::EControlState state, bool setLastState )
         m_lastState = state;
 
 }   // SetState
-
-
-/************************************************************************
-*    desc:  Set/Get the control name
-************************************************************************/
-void CUIControl::SetName( const std::string & name )
-{
-    m_name = name;
-
-}   // SetName
-
-std::string & CUIControl::GetName()
-{
-    return m_name;
-
-}   // GetName
-
-
-/************************************************************************
-*    desc:  Set/Get the control type
-************************************************************************/
-void CUIControl::SetType( NUIControl::EControlType type )
-{
-    m_type = type;
-
-}   // SetName
-
-NUIControl::EControlType CUIControl::GetType() const
-{
-    return m_type;
-
-}   // GetName
 
 
 /************************************************************************
@@ -830,13 +821,13 @@ void CUIControl::CreateFontString( const std::string & fontString, int spriteInd
 {
     int fontSpriteCounter(0);
 
-    for( size_t i = 0; i < m_pSpriteVec.size(); ++i )
+    for( auto & iter : m_spriteDeq )
     {
-        if( m_pSpriteVec[i]->GetObjectData().GetVisualData().GetGenerationType() == NDefs::EGT_FONT )
+        if( iter.GetObjectData().GetVisualData().GetGenerationType() == NDefs::EGT_FONT )
         {
             if( fontSpriteCounter == spriteIndex )
             {
-                m_pSpriteVec[i]->GetVisualComponent().CreateFontString( fontString );
+                iter.GetVisualComponent().CreateFontString( fontString );
                 break;
             }
 
@@ -863,55 +854,29 @@ const std::vector<std::string> & CUIControl::GetStringVec() const
 
 
 /************************************************************************
-*    desc:  Get the sprite vector
+*    desc:  Get the sprite deque
 ************************************************************************/
-const std::vector<CMenuSprite *> & CUIControl::GetSpriteVec() const
+std::deque<CSprite2D> & CUIControl::GetSpriteDeq()
 {
-    return m_pSpriteVec;
+    return m_spriteDeq;
 }
-
-
-/************************************************************************
-*    desc:  Handle the mouse move
-************************************************************************/
-bool CUIControl::HandleMouseMove( int x, int y )
-{
-    bool result(false);
-
-    if( !IsDisabled() && IsPointInControl( x, y ) )
-    {
-        result = true;
-
-        // Only send the message if it's not already active
-        if( !IsActive() )
-        {
-            NGenFunc::DispatchEvent( 
-                NMenu::EGE_MENU_CONTROL_STATE_CHANGE,
-                NUIControl::ECS_ACTIVE,
-                &m_name );
-        }
-    }
-
-    return result;
-
-}   // HandleMouseMove
 
 
 /************************************************************************
 *    desc:  Handle the select action
 ************************************************************************/
-bool CUIControl::HandleSelectAction( NDefs::EDeviceId deviceUsed, NMenu::EActionPress pressType )
+bool CUIControl::HandleSelectAction( const CSelectMsgCracker & msgCracker )
 {
     // Only process this message if it's keyboard/gamepad down or mouse up
     if( IsActive() )
     {
-        if( ((deviceUsed == NDefs::MOUSE) && (pressType == m_mouseSelectType)) ||
-            ((deviceUsed != NDefs::MOUSE) && (pressType == NMenu::EAP_DOWN)) )
+        if( (msgCracker.IsDeviceMouse() && (msgCracker.GetPressType() == m_mouseSelectType) && IsPointInControl( msgCracker.GetPos() ) ) ||
+            (!msgCracker.IsDeviceMouse() && msgCracker.IsPressDown()) )
         {
-            NGenFunc::DispatchEvent( 
+            NGenFunc::DispatchEvent(
                 NMenu::EGE_MENU_CONTROL_STATE_CHANGE,
                 NUIControl::ECS_SELECTED,
-                &m_name );
+                (void *)this );
 
             return true;
         }
@@ -928,6 +893,20 @@ bool CUIControl::HandleSelectAction( NDefs::EDeviceId deviceUsed, NMenu::EAction
 ************************************************************************/
 bool CUIControl::ActivateFirstInactiveControl()
 {
+    // If a mouse was used, set the control as active but don't animate it.
+    // This allows us to use the keys to scroll when pressed
+    if( CActionMgr::Instance().WasLastDeviceMouse() )
+    {
+        if( !IsDisabled() )
+        {
+            m_lastState = m_state = NUIControl::ECS_ACTIVE;
+
+            return true;
+        }
+
+        return false;
+    }
+
     return ActivateControl();
 
 }   // ActivateInactiveControl
@@ -938,8 +917,13 @@ bool CUIControl::ActivateFirstInactiveControl()
 ************************************************************************/
 bool CUIControl::IsPointInControl( int x, int y )
 {
-    //return m_collisionRect.IsPointInRect( x, y );
     return m_collisionQuad.IsPointInQuad( x, y );
+
+}   // IsPointInControl
+
+bool CUIControl::IsPointInControl( const CPoint<float> & pos )
+{
+    return m_collisionQuad.IsPointInQuad( pos.x, pos.y );
 
 }   // IsPointInControl
 
@@ -952,6 +936,15 @@ bool CUIControl::IsPointInControl( int x, int y )
 CUIControl * CUIControl::FindControl( const std::string & name )
 {
     if( m_name == name )
+        return this;
+
+    return nullptr;
+
+}   // FindControl
+
+CUIControl * CUIControl::FindControl( void * pVoid )
+{
+    if( pVoid == (void *)this )
         return this;
 
     return nullptr;
@@ -991,7 +984,7 @@ bool CUIControl::IsSelected()
 bool CUIControl::IsDisabled()
 {
     return m_state == NUIControl::ECS_DISABLED;
-    
+
 }   // IsDisabled
 
 
@@ -1016,10 +1009,20 @@ CScrollParam & CUIControl::GetScrollParam()
 
 
 /************************************************************************
-*    desc:  Get the object group name
+*    desc:  Check if control is a sub control
 ************************************************************************/
-const std::string & CUIControl::GetGroup() const
+bool CUIControl::IsSubControl() const
 {
-    return m_group;
+    return false;
 
-}	// GetGroup
+}   // IsSubControl
+
+
+/************************************************************************
+*    desc:  Connect to the execution action signal
+************************************************************************/
+void CUIControl::Connect_ExecutionAction( const ExecutionActionSignal::slot_type & slot )
+{
+    m_executionActionSignal.connect(slot);
+    
+}   // Connect_ExecutionAction

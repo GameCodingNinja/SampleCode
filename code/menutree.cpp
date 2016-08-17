@@ -8,37 +8,47 @@
 // Physical component dependency
 #include <gui/menutree.h>
 
-// Boost lib dependencies
-#include <boost/format.hpp>
-
 // Game lib dependencies
 #include <utilities/xmlParser.h>
 #include <utilities/xmlparsehelper.h>
 #include <utilities/exceptionhandling.h>
 #include <utilities/genfunc.h>
 #include <gui/menu.h>
-#include <managers/actionmanager.h>
+
+// Boost lib dependencies
+#include <boost/format.hpp>
 
 /************************************************************************
-*    desc:  Constructor
+*    desc:  Constructer
 ************************************************************************/
-CMenuTree::CMenuTree( std::map<const std::string, CMenu *> & pMenuMap, 
-                      const std::string & rootMenu,
-                      const std::string & defaultMenu )
-    : m_pMenuMap(pMenuMap),
-      m_rootMenu(rootMenu),
-      m_defaultMenu(defaultMenu),
-      m_state(NMenu::EMTS_IDLE)
+CMenuTree::CMenuTree( 
+    std::map<const std::string, CMenu> & rMenuMap, 
+    const std::string & rootMenu,
+    const std::string & defaultMenu,
+    bool interfaceMenu ) :
+        m_rMenuMap(rMenuMap),
+        m_pRootMenu( nullptr),
+        m_pDefaultMenu( nullptr ),
+        m_interfaceMenu(interfaceMenu),
+        m_state(NMenu::EMTS_IDLE )
 {
+    auto iter = rMenuMap.find( rootMenu );
+    if( iter != rMenuMap.end() )
+        m_pRootMenu = &iter->second;
+    
+    iter = rMenuMap.find( defaultMenu );
+    if( iter != rMenuMap.end() )
+        m_pDefaultMenu = &iter->second;
+    
 }   // constructor
 
 
 /************************************************************************
-*    desc:  destructor                                                             
+*    desc:  destructer                                                             
 ************************************************************************/
 CMenuTree::~CMenuTree()
 {
-}   // destructor
+}   // destructer
 
 
 /************************************************************************
@@ -46,16 +56,14 @@ CMenuTree::~CMenuTree()
 ************************************************************************/
 void CMenuTree::Init()
 {
-    m_pathVector.clear();
+    m_pMenuPathVec.clear();
 
-    if( !m_rootMenu.empty() )
+    if( m_pRootMenu != nullptr )
     {
         // If we have a root menu, add it to the path
-        m_pathVector.push_back( m_rootMenu );
+        m_pMenuPathVec.push_back( m_pRootMenu );
 
-        auto iter = m_pMenuMap.find(m_rootMenu);
-        if( iter != m_pMenuMap.end() )
-            iter->second->ActivateMenu();
+        m_pRootMenu->ActivateMenu();
     }
 
 }   // Init
@@ -66,10 +74,8 @@ void CMenuTree::Init()
 ************************************************************************/
 void CMenuTree::Update()
 {
-    if( !m_pathVector.empty() )
-    {
-        m_pMenuMap.find(m_pathVector.back())->second->Update();
-    }
+    if( !m_pMenuPathVec.empty() )
+        m_pMenuPathVec.back()->Update();
 
 }   // Update
 
@@ -79,10 +85,8 @@ void CMenuTree::Update()
 ************************************************************************/
 void CMenuTree::DoTransform()
 {
-    if( !m_pathVector.empty() )
-    {
-        m_pMenuMap.find(m_pathVector.back())->second->DoTransform();
-    }
+    if( !m_pMenuPathVec.empty() )
+        m_pMenuPathVec.back()->DoTransform();
 
 }   // DoTransform
 
@@ -92,10 +96,8 @@ void CMenuTree::DoTransform()
 ************************************************************************/
 void CMenuTree::Render( const CMatrix & matrix )
 {
-    if( !m_pathVector.empty() )
-    {
-        m_pMenuMap.find(m_pathVector.back())->second->Render( matrix );
-    }
+    if( !m_pMenuPathVec.empty() )
+        m_pMenuPathVec.back()->Render( matrix );
 
 }   // Render
 
@@ -105,7 +107,7 @@ void CMenuTree::Render( const CMatrix & matrix )
 ************************************************************************/
 bool CMenuTree::IsActive()
 {
-    return !m_pathVector.empty();
+    return !m_pMenuPathVec.empty();
 
 }   // IsActive
 
@@ -115,7 +117,7 @@ bool CMenuTree::IsActive()
 ************************************************************************/
 bool CMenuTree::HasRootMenu()
 {
-    return !m_rootMenu.empty();
+    return (m_pRootMenu != nullptr);
 
 }   // HasRootMenu
 
@@ -125,36 +127,45 @@ bool CMenuTree::HasRootMenu()
 ************************************************************************/
 void CMenuTree::HandleEvent( const SDL_Event & rEvent )
 {
-    if( !m_pathVector.empty() )
-        m_pMenuMap.find(m_pathVector.back())->second->HandleEvent( rEvent );
-
     // Trap only controller events to check for actions
-    if( m_state == NMenu::EMTS_IDLE )
+    if( !m_interfaceMenu )
     {
-        if( rEvent.type == NMenu::EGE_MENU_ESCAPE_ACTION )
+        if( !m_pMenuPathVec.empty() )
+            m_pMenuPathVec.back()->HandleEvent( rEvent );
+        
+        if( m_state == NMenu::EMTS_IDLE )
         {
-            OnEscape( rEvent );
+            if( rEvent.type == NMenu::EGE_MENU_ESCAPE_ACTION )
+            {
+                OnEscape( rEvent );
+            }
+            else if( rEvent.type == NMenu::EGE_MENU_TOGGLE_ACTION )
+            {
+                OnToggle( rEvent );
+            }
+            else if( rEvent.type == NMenu::EGE_MENU_BACK_ACTION )
+            {
+                OnBack( rEvent );
+            }
+            else if( rEvent.type == NMenu::EGE_MENU_TO_MENU )
+            {
+                OnToMenu( rEvent );
+            }
         }
-        else if( rEvent.type == NMenu::EGE_MENU_TOGGLE_ACTION )
+        else if( rEvent.type == NMenu::EGE_MENU_TRANS_IN )
         {
-            OnToggle( rEvent );
+            OnTransIn( rEvent );
         }
-        else if( rEvent.type == NMenu::EGE_MENU_BACK_ACTION )
+        else if( rEvent.type == NMenu::EGE_MENU_TRANS_OUT )
         {
-            OnBack( rEvent );
-        }
-        else if( rEvent.type == NMenu::EGE_MENU_TO_MENU )
-        {
-            OnToMenu( rEvent );
+            OnTransOut( rEvent );
         }
     }
-    else if( rEvent.type == NMenu::EGE_MENU_TRANS_IN )
+    // Don't process menu specific messages if this is an interface menu
+    else if( (rEvent.type < NMenu::EGE_MENU_USER_EVENTS) || (rEvent.type > NMenu::EGE_MENU_GAME_STATE_CHANGE) )
     {
-        OnTransIn( rEvent );
-    }
-    else if( rEvent.type == NMenu::EGE_MENU_TRANS_OUT )
-    {
-        OnTransOut( rEvent );
+        if( !m_pMenuPathVec.empty() )
+            m_pMenuPathVec.back()->HandleEvent( rEvent );
     }
 
 }   // HandleEvent
@@ -166,20 +177,22 @@ void CMenuTree::HandleEvent( const SDL_Event & rEvent )
 void CMenuTree::TransitionMenu()
 {
     // If the path vector is empty, transition to the default menu
-    if( m_pathVector.empty() )
+    if( m_pMenuPathVec.empty() )
     {
         // Make sure the menu exists
-        if( m_pMenuMap.find(m_defaultMenu) == m_pMenuMap.end() )
+        if( m_pDefaultMenu == nullptr )
             throw NExcept::CCriticalException("Menu Display Error!",
-                boost::str( boost::format("Menu does not exist (%s).\n\n%s\nLine: %s") % m_defaultMenu % __FUNCTION__ % __LINE__ ));
+                boost::str( boost::format("Menu does not exist (%s).\n\n%s\nLine: %s")
+                    % m_pDefaultMenu->GetName() % __FUNCTION__ % __LINE__ ));
 
         // Add the default menu to the path
-        m_pathVector.push_back( m_defaultMenu );
+        m_pMenuPathVec.push_back( m_pDefaultMenu );
 
         // Get the name of the menu we are transitioning to
-        m_toMenu = m_defaultMenu;
+        // This is also used as a flag to indicate moving up the menu tree
+        m_toMenu = m_pDefaultMenu->GetName();
 
-        // Set the state as "active" so that it can't be interrupted
+        // Set the state as "active" so that input messages are ignored
         m_state = NMenu::EMTS_ACTIVE;
 
         // Start the transition in
@@ -188,9 +201,9 @@ void CMenuTree::TransitionMenu()
     else
     {
         // If this isn't the root menu, start the transition out
-        if( m_pathVector.back() != m_rootMenu )
+        if( m_pMenuPathVec.back() != m_pRootMenu )
         {
-            // Set the state as "active" so that it can't be interrupted
+            // Set the state as "active" so that input messages are ignored
             m_state = NMenu::EMTS_ACTIVE;
 
             // Start the transition out
@@ -216,30 +229,30 @@ void CMenuTree::OnEscape( const SDL_Event & rEvent )
 void CMenuTree::OnToggle( const SDL_Event & rEvent )
 {
     // Toggling only works when there is no root menu
-    if( m_rootMenu.empty() )
+    if( m_pRootMenu == nullptr )
     {
         TransitionMenu();
 
         // For toggle, clear out the path vector except for the current menu
-        if( m_pathVector.size() > 1 )
+        if( m_pMenuPathVec.size() > 1 )
         {
-            std::string curMenu = m_pathVector.back();
-            m_pathVector.clear();
-            m_pathVector.push_back( curMenu );
+            CMenu * pCurMenu = m_pMenuPathVec.back();
+            m_pMenuPathVec.clear();
+            m_pMenuPathVec.push_back( pCurMenu );
         }
     }
     else
     {
-        if( m_pathVector.size() > 1 )
+        if( m_pMenuPathVec.size() > 1 )
             TransitionMenu();
 
         // For toggle, clear out the path vector except for the current and root menu
-        if( m_pathVector.size() > 2 )
+        if( m_pMenuPathVec.size() > 2 )
         {
-            std::string curMenu = m_pathVector.back();
-            m_pathVector.clear();
-            m_pathVector.push_back( m_rootMenu );
-            m_pathVector.push_back( curMenu );
+            CMenu * pCurMenu = m_pMenuPathVec.back();
+            m_pMenuPathVec.clear();
+            m_pMenuPathVec.push_back( m_pRootMenu );
+            m_pMenuPathVec.push_back( pCurMenu );
         }
     }
 
@@ -251,7 +264,7 @@ void CMenuTree::OnToggle( const SDL_Event & rEvent )
 void CMenuTree::OnBack( const SDL_Event & rEvent )
 {
     // Going back one require there to be a active menu that is not root
-    if( !m_pathVector.empty() && (m_pathVector.back() != m_rootMenu) )
+    if( !m_pMenuPathVec.empty() && (m_pMenuPathVec.back() != m_pRootMenu) )
     {
         TransitionMenu();
     }
@@ -263,15 +276,18 @@ void CMenuTree::OnBack( const SDL_Event & rEvent )
 ************************************************************************/
 void CMenuTree::OnToMenu( const SDL_Event & rEvent )
 {
-    // Set the state as "active" so that it can't be interrupted
+    // Set the state as "active" so that input messages are ignored
     m_state = NMenu::EMTS_ACTIVE;
 
     // Get the name of the menu we are transitioning to
+    // This is also used as a flag to indicate moving deaper into the menu tree
     m_toMenu = *(std::string *)rEvent.user.data1;
 
-    if( m_pMenuMap.find(m_toMenu) == m_pMenuMap.end() )
+    // Do a sanity check to make sure the menu exists
+    if( m_rMenuMap.find(m_toMenu) == m_rMenuMap.end() )
         throw NExcept::CCriticalException("Menu Display Error!",
-            boost::str( boost::format("Menu does not exist (%s).\n\n%s\nLine: %s") % m_toMenu % __FUNCTION__ % __LINE__ ));
+            boost::str( boost::format("Menu does not exist (%s).\n\n%s\nLine: %s")
+                % m_toMenu % __FUNCTION__ % __LINE__ ));
 
     // Start the transition out
     NGenFunc::DispatchEvent( NMenu::EGE_MENU_TRANS_OUT, NMenu::ETC_BEGIN );
@@ -287,24 +303,24 @@ void CMenuTree::OnTransOut( const SDL_Event & rEvent )
     {
         if( !m_toMenu.empty() )
         {
-            m_pathVector.push_back( m_toMenu );
+            m_pMenuPathVec.push_back( &m_rMenuMap.find(m_toMenu)->second );
             NGenFunc::DispatchEvent( NMenu::EGE_MENU_TRANS_IN, NMenu::ETC_BEGIN );
         }
-        else if( m_pathVector.back() != m_rootMenu )
+        else if( !m_pMenuPathVec.empty() && (m_pMenuPathVec.back() != m_pRootMenu) )
         {
             // Do a full reset on all the controls
-            m_pMenuMap.find(m_pathVector.back())->second->Reset();
+            m_pMenuPathVec.back()->Reset();
 
             // Pop it off the vector because this menu is done
-            m_pathVector.pop_back();
+            m_pMenuPathVec.pop_back();
 
-            if( !m_pathVector.empty() )
+            if( !m_pMenuPathVec.empty() )
                 NGenFunc::DispatchEvent( NMenu::EGE_MENU_TRANS_IN, NMenu::ETC_BEGIN );
         }
 
         // Normally, after one menu transitions out, the next menu transitions in
         // Only set the idle state if this transition out is final
-        if( m_pathVector.empty() )
+        if( m_pMenuPathVec.empty() )
             m_state = NMenu::EMTS_IDLE;
     }
 
@@ -317,13 +333,16 @@ void CMenuTree::OnTransIn( const SDL_Event & rEvent )
 {
     if( rEvent.user.code == NMenu::ETC_END )
     {
-        if( !CActionManager::Instance().WasLastDeviceMouse() )
-        {
-            NGenFunc::DispatchEvent( NMenu::EGE_MENU_SET_ACTIVE_CONTROL, 
-                (m_toMenu.empty()) ? NMenu::EAC_LAST_ACTIVE_CONTROL : NMenu::EAC_FIRST_ACTIVE_CONTROL );
-        }
+        // m_toMenu is also used as a flag to indicate moving up the menu tree
+        // When moving up the menu tree, activate the first control on the menu
+        // When backing out of the menu tree, activate the last control used
+        NGenFunc::DispatchEvent( NMenu::EGE_MENU_SET_ACTIVE_CONTROL, 
+            (m_toMenu.empty()) ? NMenu::EAC_LAST_ACTIVE_CONTROL : NMenu::EAC_FIRST_ACTIVE_CONTROL );
 
+        // Set to idle to allow for input messages to come through
         m_state = NMenu::EMTS_IDLE;
+        
+        // Clear in the event we start backing out of the menu tree
         m_toMenu.clear();
     }
 
@@ -333,13 +352,14 @@ void CMenuTree::OnTransIn( const SDL_Event & rEvent )
 /************************************************************************
 *    desc:  Get the active menu
 ************************************************************************/
-CMenu * CMenuTree::GetActiveMenu()
+CMenu & CMenuTree::GetActiveMenu()
 {
-    if( m_pathVector.empty() )
+    if( m_pMenuPathVec.empty() )
         throw NExcept::CCriticalException("Menu Error!",
-            boost::str( boost::format("There is no active menu.\n\n%s\nLine: %s") % __FUNCTION__ % __LINE__ ));
+            boost::str( boost::format("There is no active menu.\n\n%s\nLine: %s")
+                % __FUNCTION__ % __LINE__ ));
 
-    return m_pMenuMap.find(m_pathVector.back())->second;
+    return *m_pMenuPathVec.back();
 
 }   // GetActiveMenu
 
@@ -349,11 +369,52 @@ CMenu * CMenuTree::GetActiveMenu()
 ************************************************************************/
 CScrollParam & CMenuTree::GetScrollParam( int msg )
 {
-    if( m_pathVector.empty() )
+    if( m_pMenuPathVec.empty() )
         throw NExcept::CCriticalException("Menu Error!",
-            boost::str( boost::format("There is no active menu.\n\n%s\nLine: %s") % __FUNCTION__ % __LINE__ ));
+            boost::str( boost::format("There is no active menu.\n\n%s\nLine: %s")
+                % __FUNCTION__ % __LINE__ ));
 
-    return m_pMenuMap.find(m_pathVector.back())->second->GetScrollParam( msg );
+    return m_pMenuPathVec.back()->GetScrollParam( msg );
 
 }   // GetScrollParam
 
+
+/************************************************************************
+*    desc:  Is a menu item active
+************************************************************************/
+bool CMenuTree::IsMenuItemActive()
+{
+    bool result(false);
+
+    if( IsActive() )
+    {
+        result = true;
+
+        // Check if this is a root menu
+        if( HasRootMenu() )
+        {
+            // Get the active menu
+            CMenu & rMenu = GetActiveMenu();
+
+            // If the root menu is active, see if a control is active
+            if( m_pRootMenu == &rMenu )
+            {
+                if( rMenu.GetPtrToActiveControl() == nullptr )
+                    result = false;
+            }
+        }
+    }
+
+    return result;
+
+}   // IsMenuItemActive
+
+
+/************************************************************************
+*    desc:  Is this menu an interface
+************************************************************************/
+bool CMenuTree::IsMenuInterface() const
+{
+    return m_interfaceMenu;
+    
+}   // IsMenuInterface
