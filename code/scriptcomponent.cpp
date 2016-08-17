@@ -8,57 +8,95 @@
 // Physical component dependency
 #include <script/scriptcomponent.h>
 
+// Game lib dependencies
+#include <script/scriptmanager.h>
+#include <utilities/exceptionhandling.h>
+#include <utilities/statcounter.h>
+
 // AngelScript lib dependencies
 #include <angelscript.h>
 
 // Boost lib dependencies
 #include <boost/format.hpp>
 
-// Game lib dependencies
-#include <script/scriptmanager.h>
-#include <utilities/exceptionhandling.h>
-#include <utilities/statcounter.h>
-
 /************************************************************************
-*    desc:  Constructor
+*    desc:  Constructer
 ************************************************************************/
-CScriptComponent::CScriptComponent()
+CScriptComponent::CScriptComponent( const std::string & group ) :
+    m_group(group)
 {
 }   // constructor
 
 
 /************************************************************************
-*    desc:  destructor                                                             
+*    desc:  destructer                                                             
 ************************************************************************/
 CScriptComponent::~CScriptComponent()
 {
-    // Release the contexts we are still holding on to
-    for( size_t i = 0; i < m_pContextVec.size(); ++i )
-        m_pContextVec[i]->Release();
+    // Release the contextes we are still holding on to
+    for( auto iter : m_pContextVec )
+        iter->Release();
 
-}   // destructor
+}   // destructer
 
 
 /************************************************************************
 *    desc:  Prepare the script function to run
 ************************************************************************/
-void CScriptComponent::PrepareScript( const std::string & name, const std::string & group )
+void CScriptComponent::Prepare(
+    const std::string & name,
+    const std::vector<CScriptParam> & paramVec )
 {
     // Get a context from the script manager pool
     m_pContextVec.push_back( CScriptManager::Instance().GetContext() );
 
     // Get the function pointer
     asIScriptFunction * pScriptFunc = 
-        CScriptManager::Instance().GetPtrToFunc(group, name);
+        CScriptManager::Instance().GetPtrToFunc(m_group, name);
 
     // Prepare the function to run
     if( m_pContextVec.back()->Prepare(pScriptFunc) < 0 )
     {
         throw NExcept::CCriticalException("Error Preparing Script!",
-            boost::str( boost::format("There was an error preparing the script (%s).\n\n%s\nLine: %s") % name % __FUNCTION__ % __LINE__ ));
+            boost::str( boost::format("There was an error preparing the script (%s).\n\n%s\nLine: %s")
+                % name % __FUNCTION__ % __LINE__ ));
+    }
+    
+    // Pass the parameters to the script function
+    for( size_t i = 0; i < paramVec.size(); ++i )
+    {
+        int returnVal(0);
+        
+        if( paramVec[i].GetType() == CScriptParam::EPT_BOOL )
+        {
+            returnVal = GetContext()->SetArgByte(i, paramVec[i].Get<bool>());
+        }
+        else if( paramVec[i].GetType() == CScriptParam::EPT_INT )
+        {
+            returnVal = GetContext()->SetArgDWord(i, paramVec[i].Get<int>());
+        }
+        else if( paramVec[i].GetType() == CScriptParam::EPT_UINT )
+        {
+            returnVal = GetContext()->SetArgDWord(i, paramVec[i].Get<uint>());
+        }
+        else if( paramVec[i].GetType() == CScriptParam::EPT_FLOAT )
+        {
+            returnVal = GetContext()->SetArgFloat(i, paramVec[i].Get<float>());
+        }
+        else if( paramVec[i].GetType() == CScriptParam::EPT_REG_OBJ )
+        {
+            returnVal = GetContext()->SetArgObject(i, paramVec[i].Get<void *>());
+        }
+        
+        if( returnVal < 0 )
+        {
+            throw NExcept::CCriticalException("Error Setting Script Param!",
+                boost::str( boost::format("There was an error setting the script parameter (%s).\n\n%s\nLine: %s")
+                    % name % __FUNCTION__ % __LINE__ ));
+        }
     }
 
-}   // PrepareScript
+}   // Prepare
 
 
 /************************************************************************
@@ -75,7 +113,7 @@ void CScriptComponent::Update()
             if( ((*iter)->GetState() == asEXECUTION_SUSPENDED) || 
                 ((*iter)->GetState() == asEXECUTION_PREPARED) )
             {
-                // Increment the active script context counter
+                // Increment the active script contex counter
                 CStatCounter::Instance().IncActiveScriptContexCounter();
 
                 // Execute the script and check for errors
@@ -83,7 +121,8 @@ void CScriptComponent::Update()
                 if( (*iter)->Execute() < 0 )
                 {
                     throw NExcept::CCriticalException("Error Calling Script!",
-                        boost::str( boost::format("There was an error executing the script.\n\n%s\nLine: %s") % __FUNCTION__ % __LINE__ ));
+                        boost::str( boost::format("There was an error executing the script.\n\n%s\nLine: %s")
+                            % __FUNCTION__ % __LINE__ ));
                 }
 
                 // Return the context to the pool if it has not been suspended
@@ -130,12 +169,12 @@ void CScriptComponent::ResetAndRecycle()
 {
     if( IsActive() )
     {
-        for( size_t i = 0; i < m_pContextVec.size(); ++i )
+        for( auto iter : m_pContextVec )
         {
-            if( m_pContextVec[i]->GetState() == asEXECUTION_SUSPENDED )
-                m_pContextVec[i]->Abort();
+            if( iter->GetState() == asEXECUTION_SUSPENDED )
+                iter->Abort();
 
-            CScriptManager::Instance().RecycleContext( m_pContextVec[i] );
+            CScriptManager::Instance().RecycleContext( iter );
         }
 
         m_pContextVec.clear();
